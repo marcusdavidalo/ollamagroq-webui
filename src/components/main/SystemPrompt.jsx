@@ -69,7 +69,7 @@ const SystemPrompt = ({ systemPrompt, setSystemPrompt }) => {
   };
 
   return (
-    <div className="p-4 bg-gray-100 border-y border-zinc-300">
+    <div className="p-4 bg-zinc-100 dark:bg-zinc-800 border-y border-zinc-300 dark:border-zinc-700">
       <div className="flex items-center space-x-2">
         <input
           ref={inputRef}
@@ -77,26 +77,28 @@ const SystemPrompt = ({ systemPrompt, setSystemPrompt }) => {
           value={localPrompt}
           onChange={handlePromptChange}
           onBlur={savePrompt}
-          className="flex-grow p-2 border border-zinc-300 rounded-lg"
+          className="flex-grow p-2 border border-zinc-300 dark:border-zinc-600 rounded-lg bg-white dark:bg-zinc-700 text-zinc-900 dark:text-zinc-100"
           placeholder="Enter system prompt..."
         />
         <button
           onClick={openModal}
-          className="px-4 py-2 bg-blue-500 text-white rounded-lg"
+          className="px-4 py-2 bg-zinc-500 dark:bg-zinc-600 text-white rounded-lg hover:bg-zinc-600 dark:hover:bg-zinc-500 transition duration-150 ease-in-out"
         >
           History
         </button>
       </div>
       {isModalOpen && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex justify-center items-center z-50">
-          <div className="relative bg-white p-4 rounded-lg max-w-lg w-full max-h-[80vh] overflow-y-auto">
+          <div className="relative bg-white dark:bg-zinc-800 p-4 rounded-lg max-w-lg w-full max-h-[80vh] overflow-y-auto">
             <button
               onClick={closeModal}
-              className="absolute top-0 right-0 m-4 px-4 py-2 bg-red-500 text-white rounded-lg"
+              className="absolute top-0 right-0 m-4 px-4 py-2 bg-zinc-500 dark:bg-zinc-600 text-white rounded-lg hover:bg-zinc-600 dark:hover:bg-zinc-500"
             >
               X
             </button>
-            <h2 className="text-xl font-bold mb-4">System Prompt History</h2>
+            <h2 className="text-xl font-bold mb-4 text-zinc-900 dark:text-zinc-100">
+              System Prompt History
+            </h2>
             <ul>
               {promptHistory.map((prompt, index) => (
                 <li
@@ -105,13 +107,13 @@ const SystemPrompt = ({ systemPrompt, setSystemPrompt }) => {
                 >
                   <button
                     onClick={() => selectPrompt(prompt)}
-                    className="flex-grow text-left p-2 hover:bg-gray-100 rounded mr-2"
+                    className="flex-grow text-left p-2 hover:bg-zinc-100 dark:hover:bg-zinc-700 rounded mr-2 text-zinc-900 dark:text-zinc-100"
                   >
                     {prompt}
                   </button>
                   <button
                     onClick={() => deletePrompt(index)}
-                    className="px-2 py-1 bg-red-500 text-white rounded"
+                    className="px-2 py-1 bg-zinc-500 dark:bg-zinc-600 text-white rounded hover:bg-zinc-600 dark:hover:bg-zinc-500"
                   >
                     Delete
                   </button>
@@ -120,7 +122,7 @@ const SystemPrompt = ({ systemPrompt, setSystemPrompt }) => {
             </ul>
             <button
               onClick={clearAllPrompts}
-              className="mt-4 px-4 py-2 bg-red-500 text-white rounded-lg"
+              className="mt-4 px-4 py-2 bg-zinc-500 dark:bg-zinc-600 text-white rounded-lg hover:bg-zinc-600 dark:hover:bg-zinc-500"
             >
               Clear All
             </button>
