@@ -10,8 +10,15 @@ const Header = ({ selectedModel, setSelectedModel }) => {
         const response = await axios.get("http://localhost:11434/api/tags");
         const modelList = response.data.models.map((model) => model.model);
         setModels(modelList);
-        if (modelList.length > 0) {
+
+        // Get the last used model from local storage
+        const lastUsedModel = localStorage.getItem("lastUsedModel");
+
+        if (lastUsedModel && modelList.includes(lastUsedModel)) {
+          setSelectedModel(lastUsedModel);
+        } else if (modelList.length > 0) {
           setSelectedModel(modelList[0]); // Set default model to the first one
+          localStorage.setItem("lastUsedModel", modelList[0]);
         }
       } catch (error) {
         console.error("Error fetching models:", error);
@@ -21,13 +28,19 @@ const Header = ({ selectedModel, setSelectedModel }) => {
     fetchModels();
   }, [setSelectedModel]);
 
+  const handleModelChange = (e) => {
+    const newModel = e.target.value;
+    setSelectedModel(newModel);
+    localStorage.setItem("lastUsedModel", newModel);
+  };
+
   return (
-    <div className="p-4 border-b border-gray-300 flex justify-between items-center">
-      <h1 className="text-2xl font-bold">AI Chat Application</h1>
+    <div className="p-4 flex justify-between items-center bg-white">
+      <h1 className="text-2xl font-bold">Ollama Simple WebUI</h1>
       <select
         value={selectedModel}
-        onChange={(e) => setSelectedModel(e.target.value)}
-        className="p-2 border border-gray-300 rounded-lg"
+        onChange={handleModelChange}
+        className="p-2 border border-zinc-300 rounded-lg"
       >
         {models.map((model, index) => (
           <option key={index} value={model}>
