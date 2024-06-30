@@ -2,12 +2,11 @@ import React, { useState, useEffect, useRef } from "react";
 
 const SystemPrompt = ({ systemPrompt, setSystemPrompt }) => {
   const [promptHistory, setPromptHistory] = useState([]);
-  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [isHistoryOpen, setIsHistoryOpen] = useState(false);
   const [localPrompt, setLocalPrompt] = useState(systemPrompt);
   const inputRef = useRef(null);
 
   useEffect(() => {
-    // Load the last used prompt and history from local storage
     const lastPrompt = localStorage.getItem("lastSystemPrompt");
     if (lastPrompt) {
       setSystemPrompt(lastPrompt);
@@ -27,7 +26,6 @@ const SystemPrompt = ({ systemPrompt, setSystemPrompt }) => {
     if (localPrompt.trim() !== "" && localPrompt !== systemPrompt) {
       setSystemPrompt(localPrompt);
       localStorage.setItem("lastSystemPrompt", localPrompt);
-      // Update history
       const updatedHistory = [
         localPrompt,
         ...promptHistory.filter((p) => p !== localPrompt),
@@ -38,20 +36,18 @@ const SystemPrompt = ({ systemPrompt, setSystemPrompt }) => {
         JSON.stringify(updatedHistory)
       );
     } else if (localPrompt.trim() === "") {
-      // If the prompt is empty, clear the system prompt and don't save to history
       setSystemPrompt("");
       localStorage.removeItem("lastSystemPrompt");
     }
   };
 
-  const openModal = () => setIsModalOpen(true);
-  const closeModal = () => setIsModalOpen(false);
+  const toggleHistory = () => setIsHistoryOpen(!isHistoryOpen);
 
   const selectPrompt = (prompt) => {
     setLocalPrompt(prompt);
     setSystemPrompt(prompt);
     localStorage.setItem("lastSystemPrompt", prompt);
-    closeModal();
+    setIsHistoryOpen(false);
     if (inputRef.current) {
       inputRef.current.focus();
     }
@@ -69,64 +65,57 @@ const SystemPrompt = ({ systemPrompt, setSystemPrompt }) => {
   };
 
   return (
-    <div className="p-4 bg-zinc-100 dark:bg-zinc-800 border-y border-zinc-300 dark:border-zinc-700">
+    <div className="space-y-4">
       <div className="flex items-center space-x-2">
-        <input
+        <textarea
           ref={inputRef}
-          type="text"
           value={localPrompt}
           onChange={handlePromptChange}
           onBlur={savePrompt}
-          className="flex-grow p-2 border border-zinc-300 dark:border-zinc-600 rounded-lg bg-white dark:bg-zinc-700 text-zinc-900 dark:text-zinc-100"
+          className="flex-grow p-2 border border-zinc-300 dark:border-zinc-700 rounded-lg resize-none bg-white dark:bg-zinc-800 text-zinc-900 dark:text-zinc-100 min-h-[100px] resize-vertical"
           placeholder="Enter system prompt..."
         />
+      </div>
+      <div className="flex justify-between items-center">
         <button
-          onClick={openModal}
+          onClick={toggleHistory}
           className="px-4 py-2 bg-zinc-500 dark:bg-zinc-600 text-white rounded-lg hover:bg-zinc-600 dark:hover:bg-zinc-500 transition duration-150 ease-in-out"
         >
-          History
+          {isHistoryOpen ? "Hide History" : "Show History"}
         </button>
       </div>
-      {isModalOpen && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex justify-center items-center z-50">
-          <div className="relative bg-white dark:bg-zinc-800 p-4 rounded-lg max-w-lg w-full max-h-[80vh] overflow-y-auto">
-            <button
-              onClick={closeModal}
-              className="absolute top-0 right-0 m-4 px-4 py-2 bg-zinc-500 dark:bg-zinc-600 text-white rounded-lg hover:bg-zinc-600 dark:hover:bg-zinc-500"
-            >
-              X
-            </button>
-            <h2 className="text-xl font-bold mb-4 text-zinc-900 dark:text-zinc-100">
-              System Prompt History
-            </h2>
-            <ul>
-              {promptHistory.map((prompt, index) => (
-                <li
-                  key={index}
-                  className="mb-2 flex justify-between items-center"
+      {isHistoryOpen && (
+        <div className="mt-4">
+          <h3 className="text-lg font-semibold mb-2 text-zinc-900 dark:text-zinc-100">
+            Prompt History
+          </h3>
+          <ul className="space-y-2 max-h-[200px] overflow-y-auto">
+            {promptHistory.map((prompt, index) => (
+              <li
+                key={index}
+                className="flex justify-between items-center bg-zinc-100 dark:bg-zinc-800 p-2 rounded-lg"
+              >
+                <button
+                  onClick={() => selectPrompt(prompt)}
+                  className="flex-grow text-left mr-2 text-zinc-900 dark:text-zinc-100 hover:text-blue-500 dark:hover:text-blue-400 transition duration-150 ease-in-out"
                 >
-                  <button
-                    onClick={() => selectPrompt(prompt)}
-                    className="flex-grow text-left p-2 hover:bg-zinc-100 dark:hover:bg-zinc-700 rounded mr-2 text-zinc-900 dark:text-zinc-100"
-                  >
-                    {prompt}
-                  </button>
-                  <button
-                    onClick={() => deletePrompt(index)}
-                    className="px-2 py-1 bg-zinc-500 dark:bg-zinc-600 text-white rounded hover:bg-zinc-600 dark:hover:bg-zinc-500"
-                  >
-                    Delete
-                  </button>
-                </li>
-              ))}
-            </ul>
-            <button
-              onClick={clearAllPrompts}
-              className="mt-4 px-4 py-2 bg-zinc-500 dark:bg-zinc-600 text-white rounded-lg hover:bg-zinc-600 dark:hover:bg-zinc-500"
-            >
-              Clear All
-            </button>
-          </div>
+                  {prompt}
+                </button>
+                <button
+                  onClick={() => deletePrompt(index)}
+                  className="px-2 py-1 bg-zinc-500 dark:bg-zinc-600 text-white rounded hover:bg-zinc-600 dark:hover:bg-zinc-500 transition duration-150 ease-in-out"
+                >
+                  Delete
+                </button>
+              </li>
+            ))}
+          </ul>
+          <button
+            onClick={clearAllPrompts}
+            className="mt-4 px-4 py-2 bg-zinc-500 dark:bg-zinc-600 text-white rounded-lg hover:bg-zinc-600 dark:hover:bg-zinc-500 transition duration-150 ease-in-out"
+          >
+            Clear All
+          </button>
         </div>
       )}
     </div>

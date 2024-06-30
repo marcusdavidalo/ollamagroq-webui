@@ -1,4 +1,5 @@
 import React, { useState, useRef, useEffect } from "react";
+import imageCompression from "browser-image-compression";
 
 const CodeBlock = ({ code }) => (
   <pre className="bg-zinc-800 dark:bg-zinc-900 text-zinc-300 dark:text-zinc-400 p-4 rounded-lg overflow-x-auto">
@@ -21,11 +22,18 @@ const formatMessage = (content) => {
   }, []);
 };
 
-const Chatbox = ({ selectedModel, systemPrompt, isVisionModel }) => {
+const Chatbox = ({
+  selectedModel,
+  systemPrompt,
+  isVisionModel,
+  allowImageUpload,
+}) => {
   const [messages, setMessages] = useState([]);
   const [input, setInput] = useState("");
   const [selectedImage, setSelectedImage] = useState(null);
+  const [isDragging, setIsDragging] = useState(false);
   const messagesEndRef = useRef(null);
+  const dragCounter = useRef(0);
 
   useEffect(() => {
     scrollToBottom();
@@ -35,14 +43,64 @@ const Chatbox = ({ selectedModel, systemPrompt, isVisionModel }) => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   };
 
-  const handleImageUpload = (e) => {
-    const file = e.target.files[0];
+  const handleImageUpload = async (file) => {
     if (file) {
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        setSelectedImage(reader.result.split(",")[1]); // Store base64 data
+      const options = {
+        maxSizeMB: 0.1,
+        maxWidthOrHeight: 256,
+        useWebWorker: true,
       };
-      reader.readAsDataURL(file);
+
+      try {
+        const compressedFile = await imageCompression(file, options);
+        const reader = new FileReader();
+        reader.onloadend = () => {
+          setSelectedImage(reader.result.split(",")[1]); // Store base64 data
+        };
+        reader.readAsDataURL(compressedFile);
+      } catch (error) {
+        console.error("Error compressing image:", error);
+      }
+    }
+  };
+
+  const handleDragEnter = (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    dragCounter.current++;
+    if (e.dataTransfer.items && e.dataTransfer.items.length > 0) {
+      setIsDragging(true);
+    }
+  };
+
+  const handleDragLeave = (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    dragCounter.current--;
+    if (dragCounter.current === 0) {
+      setIsDragging(false);
+    }
+  };
+
+  const handleDragOver = (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+  };
+
+  const handleDrop = (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setIsDragging(false);
+    dragCounter.current = 0;
+
+    if (e.dataTransfer.files && e.dataTransfer.files[0]) {
+      handleImageUpload(e.dataTransfer.files[0]);
+    }
+  };
+
+  const handlePaste = (e) => {
+    if (e.clipboardData.files.length > 0) {
+      handleImageUpload(e.clipboardData.files[0]);
     }
   };
 
@@ -66,6 +124,9 @@ const Chatbox = ({ selectedModel, systemPrompt, isVisionModel }) => {
         payload.images = [selectedImage];
       }
 
+      // Log the payload being sent to the API
+      console.log("Sending to API:", payload, null, 2);
+
       try {
         const response = await fetch("http://localhost:11434/api/generate", {
           method: "POST",
@@ -74,6 +135,9 @@ const Chatbox = ({ selectedModel, systemPrompt, isVisionModel }) => {
           },
           body: JSON.stringify(payload),
         });
+
+        // Log the response status
+        console.log("API Response Status:", response.status);
 
         if (!response.body) {
           throw new Error("ReadableStream not supported");
@@ -85,6 +149,7 @@ const Chatbox = ({ selectedModel, systemPrompt, isVisionModel }) => {
         const processStream = async () => {
           const { done, value } = await reader.read();
           if (done) {
+            console.log("Stream processing completed");
             return;
           }
 
@@ -97,6 +162,8 @@ const Chatbox = ({ selectedModel, systemPrompt, isVisionModel }) => {
                 const parsedLine = JSON.parse(line);
                 if (parsedLine.response) {
                   const newContent = parsedLine.response;
+                  // Log each response chunk
+                  console.log("Received chunk:", newContent);
                   setMessages((prevMessages) => {
                     const lastMessage = prevMessages[prevMessages.length - 1];
                     if (lastMessage && lastMessage.role === "assistant") {
@@ -154,9 +221,20 @@ const Chatbox = ({ selectedModel, systemPrompt, isVisionModel }) => {
     setMessages(messages.slice(0, index));
   };
 
+  const imageUploadEnabled = isVisionModel || allowImageUpload;
+
   return (
-    <div className="flex flex-col h-full bg-white dark:bg-zinc-900 overflow-hidden">
-      <div className="flex-grow overflow-y-auto p-4 space-y-4">
+    <div
+      className="flex flex-col h-full bg-white dark:bg-zinc-900 overflow-hidden font-tahoma relative"
+      onDragEnter={handleDragEnter}
+      onDragLeave={handleDragLeave}
+      onDrop={handleDrop}
+      onPaste={handlePaste}
+    >
+      <div
+        className="flex-grow overflow-y-auto p-4 space-y-4"
+        onDragOver={handleDragOver}
+      >
         {messages.map((message, index) => (
           <div
             key={index}
@@ -208,20 +286,20 @@ const Chatbox = ({ selectedModel, systemPrompt, isVisionModel }) => {
           <input
             type="file"
             accept="image/*"
-            onChange={handleImageUpload}
+            onChange={(e) => handleImageUpload(e.target.files[0])}
             className="hidden"
             id="image-upload"
-            disabled={!isVisionModel}
+            disabled={!imageUploadEnabled}
           />
           <label
             htmlFor="image-upload"
             className={`p-2 ${
-              isVisionModel
+              imageUploadEnabled
                 ? "bg-zinc-500 dark:bg-zinc-600 hover:bg-zinc-600 dark:hover:bg-zinc-500 cursor-pointer"
                 : "bg-zinc-300 dark:bg-zinc-700 cursor-not-allowed"
             } text-white rounded-lg transition duration-200`}
           >
-            {isVisionModel ? "Upload Image" : "Image Upload Not Supported"}
+            {imageUploadEnabled ? "Upload Image" : "Image Upload Not Supported"}
           </label>
           <button
             onClick={handleSendMessage}
@@ -230,7 +308,7 @@ const Chatbox = ({ selectedModel, systemPrompt, isVisionModel }) => {
             Send
           </button>
         </div>
-        {selectedImage && isVisionModel && (
+        {selectedImage && imageUploadEnabled && (
           <div className="mt-2">
             <img
               src={`data:image/jpeg;base64,${selectedImage}`}
@@ -240,6 +318,11 @@ const Chatbox = ({ selectedModel, systemPrompt, isVisionModel }) => {
           </div>
         )}
       </div>
+      {isDragging && imageUploadEnabled && (
+        <div className="absolute inset-0 bg-zinc-500 bg-opacity-50 flex items-center justify-center pointer-events-none">
+          <p className="text-white text-2xl">Drop image here</p>
+        </div>
+      )}
     </div>
   );
 };
