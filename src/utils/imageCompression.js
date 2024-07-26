@@ -2,8 +2,8 @@ import imageCompression from "browser-image-compression";
 
 export const compressImage = async (file) => {
   const options = {
-    maxSizeMB: 0.1,
-    maxWidthOrHeight: 256,
+    maxSizeKB: 256,
+    maxWidthOrHeight: 512,
     useWebWorker: true,
   };
 

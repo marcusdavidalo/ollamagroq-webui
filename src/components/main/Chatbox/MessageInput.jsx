@@ -35,6 +35,7 @@ const MessageInput = ({ onSendMessage, isVisionModel, allowImageUpload }) => {
           isEnabled={isVisionModel || allowImageUpload}
           onImageSelect={setSelectedImage}
           selectedImage={selectedImage}
+          setSelectedImage={setSelectedImage}
         />
         <button
           onClick={handleSend}

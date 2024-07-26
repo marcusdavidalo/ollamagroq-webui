@@ -48,6 +48,8 @@ const useMessageHandler = (
       payload.images = [selectedImage];
     }
 
+    console.log("Sending to API:", payload, null, 2);
+
     try {
       const response = await fetch("http://localhost:11434/api/generate", {
         method: "POST",

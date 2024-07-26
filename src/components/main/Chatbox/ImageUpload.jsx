@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useEffect, useCallback } from "react";
 import { compressImage } from "../../../utils/imageCompression";
 
 const ImageUpload = ({
@@ -7,12 +7,38 @@ const ImageUpload = ({
   selectedImage,
   setSelectedImage,
 }) => {
-  const handleImageUpload = async (file) => {
-    if (file) {
-      const compressedImage = await compressImage(file);
-      onImageSelect(compressedImage);
+  const handleImageUpload = useCallback(
+    async (file) => {
+      if (file) {
+        const compressedImage = await compressImage(file);
+        onImageSelect(compressedImage);
+      }
+    },
+    [onImageSelect]
+  );
+
+  const handlePaste = useCallback(
+    async (event) => {
+      const items = event.clipboardData.items;
+      for (let item of items) {
+        if (item.type.includes("image")) {
+          const file = item.getAsFile();
+          await handleImageUpload(file);
+          break;
+        }
+      }
+    },
+    [handleImageUpload]
+  );
+
+  useEffect(() => {
+    if (isEnabled) {
+      window.addEventListener("paste", handlePaste);
+      return () => {
+        window.removeEventListener("paste", handlePaste);
+      };
     }
-  };
+  }, [isEnabled, handlePaste]);
 
   return (
     <div>
