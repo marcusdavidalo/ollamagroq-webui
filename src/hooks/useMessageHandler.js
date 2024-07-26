@@ -1,10 +1,12 @@
 import { useState, useCallback } from "react";
+import { sendMessageToGroq } from "../utils/groqClient";
 
 const useMessageHandler = (
   messages,
   setMessages,
   selectedModel,
-  systemPrompt
+  systemPrompt,
+  isGroqModel
 ) => {
   const [isLoading, setIsLoading] = useState(false);
 
@@ -38,57 +40,73 @@ const useMessageHandler = (
     ];
     setMessages(newMessages);
 
-    const payload = {
-      model: selectedModel,
-      prompt: input,
-      messages: [{ role: "system", content: systemPrompt }, ...newMessages],
-    };
-
-    if (selectedImage) {
-      payload.images = [selectedImage];
-    }
-
-    console.log("Sending to API:", payload, null, 2);
-
     try {
-      const response = await fetch("http://localhost:11434/api/generate", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify(payload),
-      });
+      let assistantResponse;
+      if (isGroqModel) {
+        // Use Groq API
+        const groqMessages = [
+          { role: "system", content: systemPrompt },
+          ...newMessages.map((msg) => ({
+            role: msg.role,
+            content: msg.content,
+          })),
+        ];
+        assistantResponse = await sendMessageToGroq(
+          groqMessages,
+          selectedModel
+        );
+      } else {
+        // Use existing local API
+        const payload = {
+          model: selectedModel,
+          prompt: input,
+          messages: [{ role: "system", content: systemPrompt }, ...newMessages],
+        };
+        if (selectedImage) {
+          payload.images = [selectedImage];
+        }
 
-      if (!response.body) {
-        throw new Error("ReadableStream not supported");
-      }
+        const response = await fetch("http://localhost:11434/api/generate", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify(payload),
+        });
 
-      const reader = response.body.getReader();
-      const decoder = new TextDecoder();
+        if (!response.body) {
+          throw new Error("ReadableStream not supported");
+        }
 
-      let assistantResponse = "";
+        const reader = response.body.getReader();
+        const decoder = new TextDecoder();
 
-      while (true) {
-        const { done, value } = await reader.read();
-        if (done) break;
+        assistantResponse = "";
 
-        const chunk = decoder.decode(value, { stream: true });
-        const lines = chunk.split("\n");
+        while (true) {
+          const { done, value } = await reader.read();
+          if (done) break;
 
-        for (const line of lines) {
-          if (line.trim() !== "") {
-            try {
-              const parsedLine = JSON.parse(line);
-              if (parsedLine.response) {
-                assistantResponse += parsedLine.response;
-                updateAssistantMessage(assistantResponse);
+          const chunk = decoder.decode(value, { stream: true });
+          const lines = chunk.split("\n");
+
+          for (const line of lines) {
+            if (line.trim() !== "") {
+              try {
+                const parsedLine = JSON.parse(line);
+                if (parsedLine.response) {
+                  assistantResponse += parsedLine.response;
+                  updateAssistantMessage(assistantResponse);
+                }
+              } catch (error) {
+                console.error("Error parsing line:", error);
               }
-            } catch (error) {
-              console.error("Error parsing line:", error);
             }
           }
         }
       }
+
+      updateAssistantMessage(assistantResponse);
     } catch (error) {
       console.error("Error sending message:", error);
       setMessages((prevMessages) => [

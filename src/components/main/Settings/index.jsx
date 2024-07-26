@@ -1,51 +1,28 @@
 import React, { useState } from "react";
-import SystemPrompt from "./SystemPrompt";
+import GeneralSettings from "./GeneralSettings";
+import AboutTab from "./AboutTab";
 
-const SettingsModal = ({ systemPrompt, setSystemPrompt, setIsModalOpen }) => {
+const SettingsModal = ({ settings, onSettingsChange, setIsModalOpen }) => {
   const [selectedTab, setSelectedTab] = useState("general");
-
-  const handleSave = () => {
-    setIsModalOpen(false);
-  };
 
   const renderTabContent = () => {
     switch (selectedTab) {
       case "general":
         return (
-          <div className="space-y-4">
-            <h3 className="text-lg font-semibold text-zinc-900 dark:text-zinc-100">
-              System Prompt
-            </h3>
-            <div className="bg-zinc-100 dark:bg-zinc-900 rounded-lg p-4">
-              <SystemPrompt
-                systemPrompt={systemPrompt}
-                setSystemPrompt={setSystemPrompt}
-              />
-            </div>
-          </div>
+          <GeneralSettings
+            settings={settings}
+            onSettingsChange={onSettingsChange}
+          />
         );
       case "about":
-        return (
-          <div className="space-y-4">
-            <h3 className="text-lg font-semibold text-zinc-900 dark:text-zinc-100">
-              Version
-            </h3>
-            <p className="text-zinc-600 dark:text-zinc-400">v1.0.0</p>
-            <h3 className="text-lg font-semibold text-zinc-900 dark:text-zinc-100">
-              License
-            </h3>
-            <p className="text-zinc-600 dark:text-zinc-400">MIT License</p>
-            <h3 className="text-lg font-semibold text-zinc-900 dark:text-zinc-100">
-              Credits
-            </h3>
-            <p className="text-zinc-600 dark:text-zinc-400">
-              Developed by Marcus David Alo
-            </p>
-          </div>
-        );
+        return <AboutTab />;
       default:
         return null;
     }
+  };
+
+  const handleSave = () => {
+    setIsModalOpen(false);
   };
 
   return (

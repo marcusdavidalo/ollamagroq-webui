@@ -9,16 +9,18 @@ const Chatbox = ({
   systemPrompt,
   isVisionModel,
   allowImageUpload,
+  isGroqModel,
 }) => {
   const [messages, setMessages] = useState([]);
   const [selectedImage, setSelectedImage] = useState(null);
   const messagesEndRef = useRef(null);
 
-  const { handleSendMessage } = useMessageHandler(
+  const { handleSendMessage, isLoading } = useMessageHandler(
     messages,
     setMessages,
     selectedModel,
-    systemPrompt
+    systemPrompt,
+    isGroqModel
   );
 
   const {
@@ -52,16 +54,18 @@ const Chatbox = ({
       />
       <MessageInput
         onSendMessage={handleSendMessageWithImage}
-        isVisionModel={isVisionModel}
-        allowImageUpload={allowImageUpload}
+        isVisionModel={isVisionModel && !isGroqModel}
+        allowImageUpload={allowImageUpload && !isGroqModel}
         selectedImage={selectedImage}
         setSelectedImage={setSelectedImage}
+        isLoading={isLoading}
       />
-      {isDragging && (
+      {isDragging && !isGroqModel && (
         <div className="absolute inset-0 bg-zinc-500 bg-opacity-50 flex items-center justify-center pointer-events-none">
           <p className="text-white text-2xl">Drop image here</p>
         </div>
       )}
+      <div ref={messagesEndRef} />
     </div>
   );
 };

@@ -1,42 +1,48 @@
 import React, { useState, useEffect, useRef } from "react";
 
-const SystemPrompt = ({ systemPrompt, setSystemPrompt }) => {
+const SystemPrompt = ({ settings, onSettingsChange }) => {
   const [promptHistory, setPromptHistory] = useState([]);
   const [isHistoryOpen, setIsHistoryOpen] = useState(false);
-  const [localPrompt, setLocalPrompt] = useState(systemPrompt);
+  const [localPrompt, setLocalPrompt] = useState(settings.systemPrompt);
   const inputRef = useRef(null);
 
   useEffect(() => {
     const lastPrompt = localStorage.getItem("lastSystemPrompt");
     if (lastPrompt) {
-      setSystemPrompt(lastPrompt);
+      onSettingsChange({ ...settings, systemPrompt: lastPrompt });
       setLocalPrompt(lastPrompt);
     }
     const history = JSON.parse(
       localStorage.getItem("systemPromptHistory") || "[]"
     );
     setPromptHistory(history);
-  }, [setSystemPrompt]);
+  }, [onSettingsChange, settings]);
+
+  useEffect(() => {
+    setLocalPrompt(settings.systemPrompt);
+  }, [settings.systemPrompt]);
 
   const handlePromptChange = (e) => {
-    setLocalPrompt(e.target.value);
+    const newPrompt = e.target.value;
+    setLocalPrompt(newPrompt);
+    savePrompt(newPrompt);
   };
 
-  const savePrompt = () => {
-    if (localPrompt.trim() !== "" && localPrompt !== systemPrompt) {
-      setSystemPrompt(localPrompt);
-      localStorage.setItem("lastSystemPrompt", localPrompt);
+  const savePrompt = (prompt) => {
+    if (prompt.trim() !== "" && prompt !== settings.systemPrompt) {
+      onSettingsChange({ ...settings, systemPrompt: prompt });
+      localStorage.setItem("lastSystemPrompt", prompt);
       const updatedHistory = [
-        localPrompt,
-        ...promptHistory.filter((p) => p !== localPrompt),
+        prompt,
+        ...promptHistory.filter((p) => p !== prompt),
       ].slice(0, 20);
       setPromptHistory(updatedHistory);
       localStorage.setItem(
         "systemPromptHistory",
         JSON.stringify(updatedHistory)
       );
-    } else if (localPrompt.trim() === "") {
-      setSystemPrompt("");
+    } else if (prompt.trim() === "") {
+      onSettingsChange({ ...settings, systemPrompt: "" });
       localStorage.removeItem("lastSystemPrompt");
     }
   };
@@ -45,8 +51,7 @@ const SystemPrompt = ({ systemPrompt, setSystemPrompt }) => {
 
   const selectPrompt = (prompt) => {
     setLocalPrompt(prompt);
-    setSystemPrompt(prompt);
-    localStorage.setItem("lastSystemPrompt", prompt);
+    savePrompt(prompt);
     setIsHistoryOpen(false);
     if (inputRef.current) {
       inputRef.current.focus();
@@ -66,12 +71,15 @@ const SystemPrompt = ({ systemPrompt, setSystemPrompt }) => {
 
   return (
     <div className="space-y-4">
+      <h3 className="text-lg font-semibold text-zinc-900 dark:text-zinc-100">
+        System Prompt
+      </h3>
       <div className="flex items-center space-x-2">
         <textarea
           ref={inputRef}
           value={localPrompt}
           onChange={handlePromptChange}
-          onBlur={savePrompt}
+          onBlur={() => savePrompt(localPrompt)}
           className="flex-grow p-2 border border-zinc-300 dark:border-zinc-700 rounded-lg resize-none bg-white dark:bg-zinc-800 text-zinc-900 dark:text-zinc-100 min-h-[100px] resize-vertical"
           placeholder="Enter system prompt..."
         />
